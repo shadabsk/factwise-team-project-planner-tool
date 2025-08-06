@@ -96,7 +96,7 @@ class TeamsManager(team_base_interface.TeamBase):
         generic_utils.save_json(settings.TEAM_FILE, teams_info)
         return json.dumps({"message": "Users added successfully"})
 
-    def list_team_users(self, request):
+    def list_team_users(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         serializer = app_teams_serializer.TeamIdSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -113,6 +113,10 @@ class TeamsManager(team_base_interface.TeamBase):
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['TEAM_NOT_FOUND']
             )
+        if not is_admin and acting_user_id not in team_record['members']:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
+            )
 
         team_members = [
             user for user in users_info
@@ -128,7 +132,7 @@ class TeamsManager(team_base_interface.TeamBase):
         ]
         return json.dumps(result)
 
-    def describe_team(self, request):
+    def describe_team(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         serializer = app_teams_serializer.DescribeOrUpdateTeamSerializer(
             data=data
@@ -145,6 +149,10 @@ class TeamsManager(team_base_interface.TeamBase):
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['TEAM_NOT_FOUND']
             )
+        if not is_admin and acting_user_id not in team_record['members']:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
+            )
         return json.dumps(team_record)
 
     def update_team(self, request):
@@ -157,9 +165,19 @@ class TeamsManager(team_base_interface.TeamBase):
 
         teams_info = generic_utils.load_json(settings.TEAM_FILE)
         users_info = generic_utils.load_json(settings.USER_FILE)
+
+        team_record = next(
+            (team for team in teams_info if team["team_id"] == team_id),
+            None
+        )
+        if not team_record:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['TEAM_NOT_FOUND']
+            )
+
         existing_names = {
-            team["team_name"] for team in teams_info
-            if team["team_id"] != team_id
+            team["team_name"]
+            for team in teams_info if team["team_id"] != team_id
         }
         user_ids = {user["user_id"] for user in users_info}
 
@@ -171,15 +189,6 @@ class TeamsManager(team_base_interface.TeamBase):
         if updated_data["admin"] not in user_ids:
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['ADMIN_NOT_EXIST']
-            )
-
-        team_record = next(
-            (team for team in teams_info if team["team_id"] == team_id),
-            None
-        )
-        if not team_record:
-            raise Exception(
-                settings.RESPONSE_MSG_CONSTANTS_DICT['TEAM_NOT_FOUND']
             )
 
         team_record["team_name"] = updated_data["name"]
@@ -222,8 +231,8 @@ class TeamsManager(team_base_interface.TeamBase):
                 raise Exception(settings.RESPONSE_MSG_CONSTANTS_DICT['UNAUTH'])
 
         team_record["members"] = [
-            user_id for user_id in team_record["members"]
-            if user_id not in remove_ids
+            user_id
+            for user_id in team_record["members"] if user_id not in remove_ids
         ]
         generic_utils.save_json(settings.TEAM_FILE, teams_info)
         return json.dumps({"message": "Users removed from team"})

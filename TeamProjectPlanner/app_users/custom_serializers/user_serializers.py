@@ -6,9 +6,9 @@ from common_utils import auth_utils as common_auth_utils
 
 
 class UserCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
-    display_name = serializers.CharField(max_length=64)
-    password = serializers.CharField(min_length=6, write_only=True)
+    name = serializers.CharField(min_length=4, max_length=64)
+    display_name = serializers.CharField(min_length=4, max_length=64)
+    password = serializers.CharField(min_length=4, write_only=True)
     description = serializers.CharField(
         max_length=128, required=False, allow_blank=True
     )
@@ -38,10 +38,10 @@ class UserCreateSerializer(serializers.Serializer):
 
 
 class UserIdSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
 
 
 class UpdateUserSerializer(serializers.Serializer):
     id = serializers.CharField()
-    name = serializers.CharField(required=False)
-    display_name = serializers.CharField(required=False)
+    name = serializers.CharField(min_length=4, max_length=64)
+    display_name = serializers.CharField(min_length=4, max_length=128)

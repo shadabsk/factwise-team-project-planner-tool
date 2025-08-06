@@ -4,9 +4,9 @@ from django.conf import settings
 
 
 class TeamCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
+    name = serializers.CharField(min_length=4, max_length=64)
     description = serializers.CharField(max_length=128)
-    admin = serializers.CharField()
+    admin = serializers.CharField(max_length=8)
 
     def validate_name(self, value):
         existing_names = self.context.get("existing_team_names", [])
@@ -25,44 +25,35 @@ class TeamCreateSerializer(serializers.Serializer):
         return value
 
 
-class TeamListSerializer(serializers.Serializer):
-    team_id = serializers.CharField()
-    team_name = serializers.CharField()
-    description = serializers.CharField()
-    creation_time = serializers.CharField()
-    admin = serializers.CharField()
-
-
 class AddUsersToTeamSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
     users = serializers.ListField(
-        child=serializers.CharField(),
-        max_length=50
+        child=serializers.CharField(max_length=8)
     )
 
 
 class TeamIdSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
 
 
 class DescribeOrUpdateTeamSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
 
 
 class UpdateTeamPayloadSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
+    name = serializers.CharField(min_length=4, max_length=64)
     description = serializers.CharField(max_length=128)
-    admin = serializers.CharField()
+    admin = serializers.CharField(max_length=8)
 
 
 class UpdateTeamSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
     team = UpdateTeamPayloadSerializer()
 
 
 class RemoveUsersFromTeamSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
     users = serializers.ListField(
-        child=serializers.CharField(),
+        child=serializers.CharField(max_length=8),
         max_length=50
     )

@@ -4,9 +4,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from django.conf import settings
+
 from app_users import service as user_service
 
 from common_utils import auth_utils as common_auth_utils
+from common_utils import base_utils as generic_utils
 
 
 class CreateUserAPIView(APIView):
@@ -30,12 +33,17 @@ class ListUsersAPIView(APIView):
         self.user_manager = user_service.UserManager()
 
     def get(self, request):
-        token = request.headers.get("Authorization", "").replace("Token ", "")
+        token = request.headers.get(
+            "Authorization", ""
+        ).replace("Token ", "").strip()
         user = common_auth_utils.get_user_from_token(token)
 
         if not user or not user.get("is_admin"):
             return Response(
-                {"error": "Admin only"}, status=status.HTTP_403_FORBIDDEN
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT['UNAUTH']
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
 
         try:
@@ -58,12 +66,31 @@ class DescribeUserAPIView(APIView):
 
             if not user_id:
                 return Response(
-                    {"error": "Missing required parameter: id"},
+                    {
+                        "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
+                            'ID_PARAM_MISSING'
+                        ]
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            token = request.headers.get(
+                "Authorization", ""
+            ).replace("Token ", "").strip()
+            user = common_auth_utils.get_user_from_token(token)
+
+            if not user:
+                return Response(
+                    {
+                        "error": settings.RESPONSE_MSG_CONSTANTS_DICT['UNAUTH']
+                    },
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
             result = self.user_manager.describe_user(
-                json.dumps({"id": user_id})
+                json.dumps({"id": user_id}),
+                acting_user_id=user['user_id'],
+                is_admin=user.get('is_admin', False)
             )
             return Response(json.loads(result), status=status.HTTP_200_OK)
         except Exception as e:
@@ -83,7 +110,10 @@ class UpdateUserAPIView(APIView):
 
         if not user:
             return Response(
-                {"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT['UNAUTH']
+                },
+                status=status.HTTP_403_FORBIDDEN
             )
 
         try:
@@ -117,7 +147,11 @@ class GetUserTeamsAPIView(APIView):
 
         if not user_id:
             return Response(
-                {"error": "Missing required parameter: id"},
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
+                        'ID_PARAM_MISSING'
+                    ]
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 

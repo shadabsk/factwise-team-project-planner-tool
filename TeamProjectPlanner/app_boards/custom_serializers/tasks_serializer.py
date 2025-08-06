@@ -6,8 +6,8 @@ from django.conf import settings
 class AddTaskSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=64)
     description = serializers.CharField(max_length=128)
-    user_id = serializers.CharField()
-    board_id = serializers.CharField()
+    user_id = serializers.CharField(max_length=8)
+    board_id = serializers.CharField(max_length=8)
     creation_time = serializers.CharField()
 
     def validate_title(self, value):
@@ -23,5 +23,5 @@ class AddTaskSerializer(serializers.Serializer):
 
 
 class TaskStatusUpdateSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=11)
     status = serializers.ChoiceField(choices=settings.TASK_STATUS_CHOICES)

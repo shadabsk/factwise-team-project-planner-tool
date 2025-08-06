@@ -58,7 +58,7 @@ class UserManager(user_base_interface.UserBase):
         users_info = generic_utils.load_json(settings.USER_FILE)
         return json.dumps(users_info)
 
-    def describe_user(self, request):
+    def describe_user(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         serializer = app_user_serializers.UserIdSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -75,6 +75,12 @@ class UserManager(user_base_interface.UserBase):
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['USER_NOT_FOUND']
             )
+
+        if user_id != acting_user_id and (not is_admin):
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
+            )
+
         return json.dumps(user_record)
 
     def update_user(self, request, acting_user_id, is_admin):
@@ -102,8 +108,11 @@ class UserManager(user_base_interface.UserBase):
                 settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
             )
 
-        if "name" in validated:
-            user_record["name"] = validated["name"]
+        if user_record["name"] != validated["name"]:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['USER_NAME_RESTRICT']
+            )
+
         if "display_name" in validated:
             user_record["display_name"] = validated["display_name"]
 

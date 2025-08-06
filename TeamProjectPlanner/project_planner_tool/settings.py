@@ -160,6 +160,7 @@ RESPONSE_MSG_CONSTANTS_DICT = {
     'UNAME_EXIST': 'Username already exists.',
     'ADMIN_EXIST': 'Admin user already exists.',
     'USER_NOT_FOUND': 'User not found',
+    'USER_NAME_RESTRICT': 'User name cant be updated',
     'DENY': 'Permission denied',
     'UNAUTH': 'Unauthorized',
     'ONLY_ADMIN_RESTRICT_TEAM': 'Only admin can create teams',
@@ -177,11 +178,13 @@ RESPONSE_MSG_CONSTANTS_DICT = {
         'Cannot close board. There are tasks not marked as '
         f'{TASK_STATUS_CHOICES[2]}'
     ),
-    'TASK_CANT_ADD': 'Cannot add task to CLOSED board',
+    'TASK_CANT_ADD': 'Cannot add task to boards having status other than OPEN',
     'TEAM_NOT_FOUND_IN_BOARD': 'Associated team for this board not found',
     'USER_NOT_IN_TEAM': 'Only team members can add tasks to this board',
     'ASSIGNED_USER_NOT_IN_TEAM': 'Assigned user is not in the boards team',
     'TASK_NOT_FOUND': 'Task not found',
+    'ID_PARAM_MISSING': 'Missing required parameter: id',
+    'USER_PARAM_MISSING': 'Missing required parameter: users'
 }
 
 EXPORT_DIR = "out"

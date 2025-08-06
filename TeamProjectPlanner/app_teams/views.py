@@ -99,23 +99,6 @@ class AddUsersToTeamAPIView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        team_id = request.data.get("id")
-        teams_info = generic_utils.load_json(settings.TEAM_FILE)
-        team = next(
-            (team for team in teams_info if team["team_id"] == team_id),
-            None
-        )
-
-        if not team:
-            return Response(
-                {
-                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
-                        'TEAM_NOT_FOUND'
-                    ]
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         try:
             result = self.teams_manager.add_users_to_team(
                 json.dumps(request.data)
@@ -151,12 +134,18 @@ class ListTeamUsersAPIView(APIView):
 
             if not team_id:
                 return Response(
-                    {"error": "Missing required parameter: id"},
+                    {
+                        "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
+                            'ID_PARAM_MISSING'
+                        ]
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
             result = self.teams_manager.list_team_users(
-                json.dumps({"id": team_id})
+                json.dumps({"id": team_id}),
+                acting_user_id=user['user_id'],
+                is_admin=user.get('is_admin', False)
             )
             return Response(json.loads(result), status=status.HTTP_200_OK)
         except Exception as e:
@@ -189,12 +178,18 @@ class DescribeTeamAPIView(APIView):
 
             if not team_id:
                 return Response(
-                    {"error": "Missing required parameter: id"},
+                    {
+                        "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
+                            'ID_PARAM_MISSING'
+                        ]
+                    },
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
             result = self.teams_manager.describe_team(
-                json.dumps({"id": team_id})
+                json.dumps({"id": team_id}),
+                acting_user_id=user['user_id'],
+                is_admin=user.get('is_admin', False)
             )
             return Response(json.loads(result), status=status.HTTP_200_OK)
         except Exception as e:
@@ -214,14 +209,14 @@ class UpdateTeamAPIView(APIView):
         ).replace("Token ", "").strip()
         user = common_auth_utils.get_user_from_token(token)
 
-        team_id = request.data.get("id")
-        teams_info = generic_utils.load_json(settings.TEAM_FILE)
-        team_record = next(
-            (team for team in teams_info if team["team_id"] == team_id),
-            None
-        )
-
-        if not team_record or not (user and user["is_admin"]):
+        if not user:
+            return Response(
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT['UNAUTH']
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if not user['is_admin']:
             return Response(
                 {
                     "error": settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
@@ -248,7 +243,11 @@ class RemoveUsersFromTeamAPIView(APIView):
 
         if not team_id:
             return Response(
-                {"error": "Missing required parameter: id"},
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
+                        'ID_PARAM_MISSING'
+                    ]
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -256,7 +255,11 @@ class RemoveUsersFromTeamAPIView(APIView):
 
         if not user_to_remove_ids:
             return Response(
-                {"error": "Missing required parameter: users"},
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT[
+                        'USER_PARAM_MISSING'
+                    ]
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
         user_to_remove_ids = (
@@ -269,13 +272,14 @@ class RemoveUsersFromTeamAPIView(APIView):
 
         user = common_auth_utils.get_user_from_token(token)
 
-        teams_info = generic_utils.load_json(settings.TEAM_FILE)
-        team_record = next(
-            (team for team in teams_info if team["team_id"] == team_id),
-            None
-        )
-
-        if not team_record or not (user and user["is_admin"]):
+        if not user:
+            return Response(
+                {
+                    "error": settings.RESPONSE_MSG_CONSTANTS_DICT['UNAUTH']
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+        if not user['is_admin']:
             return Response(
                 {
                     "error": settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']

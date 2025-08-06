@@ -67,10 +67,26 @@ class BoardsManager(board_nd_task_base_interface.ProjectBoardBase):
 
         return json.dumps({"id": board_id})
 
-    def list_boards(self, request):
+    def list_boards(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         team_id = data.get("id")
         boards_info = generic_utils.load_json(settings.BOARD_FILE)
+        teams_info = generic_utils.load_json(settings.TEAM_FILE)
+
+        teams_info = generic_utils.load_json(settings.TEAM_FILE)
+        team_record = next(
+            (team for team in teams_info if team["team_id"] == team_id),
+            None
+        )
+        if not team_record:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['TEAM_NOT_FOUND']
+            )
+
+        if not is_admin and acting_user_id not in team_record['members']:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
+            )
 
         filtered = [
             {
@@ -83,7 +99,7 @@ class BoardsManager(board_nd_task_base_interface.ProjectBoardBase):
         ]
         return json.dumps(filtered)
 
-    def close_board(self, request):
+    def close_board(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         serializer = app_boards_serializer.BoardIdSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -102,6 +118,20 @@ class BoardsManager(board_nd_task_base_interface.ProjectBoardBase):
         if not board_record:
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['BOARD_NOT_FOUND']
+            )
+
+        teams_info = generic_utils.load_json(settings.TEAM_FILE)
+        team_record = next(
+            (
+                team for team in teams_info
+                if team["team_id"] == board_record['team_id']
+            ),
+            None
+        )
+
+        if not is_admin and acting_user_id not in team_record['members']:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
             )
 
         # BOARD_STATUS_CHOICES[-1] -> Closed
@@ -125,7 +155,7 @@ class BoardsManager(board_nd_task_base_interface.ProjectBoardBase):
 
         return json.dumps({"message": "Board closed successfully"})
 
-    def export_board(self, request):
+    def export_board(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         serializer = app_boards_serializer.BoardIdSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -145,6 +175,20 @@ class BoardsManager(board_nd_task_base_interface.ProjectBoardBase):
         if not board_record:
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['BOARD_NOT_FOUND']
+            )
+
+        teams_info = generic_utils.load_json(settings.TEAM_FILE)
+        team_record = next(
+            (
+                team for team in teams_info
+                if team["team_id"] == board_record['team_id']
+            ),
+            None
+        )
+
+        if not is_admin and acting_user_id not in team_record['members']:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
             )
 
         board_tasks = [
@@ -190,12 +234,11 @@ class TaskManager(board_nd_task_base_interface.ProjectBoardBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def add_task(self, request, acting_user_id):
+    def add_task(self, request, acting_user_id, is_admin):
         data = json.loads(request)
 
         tasks_info = generic_utils.load_json(settings.TASK_FILE)
         boards_info = generic_utils.load_json(settings.BOARD_FILE)
-        # users_info = generic_utils.load_json(settings.USER_FILE)
         teams_info = generic_utils.load_json(settings.TEAM_FILE)
 
         # Build: board_id → set(task_title)
@@ -244,17 +287,18 @@ class TaskManager(board_nd_task_base_interface.ProjectBoardBase):
                 settings.RESPONSE_MSG_CONSTANTS_DICT['TEAM_NOT_FOUND_IN_BOARD']
             )
 
-        if acting_user_id not in team_record["members"]:
-            raise Exception(
-                settings.RESPONSE_MSG_CONSTANTS_DICT['USER_NOT_IN_TEAM']
-            )
-
         # Validate assigned user is also in the team
         if validated["user_id"] not in team_record["members"]:
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT[
                     'ASSIGNED_USER_NOT_IN_TEAM'
                 ]
+            )
+
+        # Admin can assign/create tasks even if they are not on this board
+        if not is_admin and acting_user_id not in team_record["members"]:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['USER_NOT_IN_TEAM']
             )
 
         task_id = "task_" + uuid4().hex[:6]
@@ -273,7 +317,7 @@ class TaskManager(board_nd_task_base_interface.ProjectBoardBase):
 
         return json.dumps({"id": task_id})
 
-    def update_task_status(self, request: str) -> str:
+    def update_task_status(self, request, acting_user_id, is_admin):
         data = json.loads(request)
         serializer = app_tasks_serializer.TaskStatusUpdateSerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -290,6 +334,29 @@ class TaskManager(board_nd_task_base_interface.ProjectBoardBase):
         if not task_record:
             raise Exception(
                 settings.RESPONSE_MSG_CONSTANTS_DICT['TASK_NOT_FOUND']
+            )
+        
+        boards_info = generic_utils.load_json(settings.BOARD_FILE)
+        teams_info = generic_utils.load_json(settings.TEAM_FILE)
+
+        board_record = next(
+            (
+                board for board in boards_info
+                if board["board_id"] == task_record["board_id"]
+            ),
+            None
+        )
+        team_record = next(
+            (
+                team for team in teams_info
+                if team["team_id"] == board_record["team_id"]
+            ),
+            None
+        )
+
+        if not is_admin and acting_user_id not in team_record['members']:
+            raise Exception(
+                settings.RESPONSE_MSG_CONSTANTS_DICT['DENY']
             )
 
         task_record["status"] = validated["status"]

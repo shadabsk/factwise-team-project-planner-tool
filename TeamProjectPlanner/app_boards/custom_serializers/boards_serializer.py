@@ -4,9 +4,9 @@ from django.conf import settings
 
 
 class BoardCreateSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64)
-    description = serializers.CharField(max_length=128)
-    team_id = serializers.CharField()
+    name = serializers.CharField(min_length=4, max_length=64)
+    description = serializers.CharField(min_length=4, max_length=128)
+    team_id = serializers.CharField(max_length=8)
     creation_time = serializers.CharField()
 
     def validate_name(self, value):
@@ -23,4 +23,4 @@ class BoardCreateSerializer(serializers.Serializer):
 
 
 class BoardIdSerializer(serializers.Serializer):
-    id = serializers.CharField()
+    id = serializers.CharField(max_length=8)
